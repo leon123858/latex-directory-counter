@@ -11,20 +11,42 @@ import (
 )
 
 var (
-	commentRegex = regexp.MustCompile(`%.*$`)
-	envRegex     = regexp.MustCompile(`\\begin\{.*?}[\s\S]*?\\end\{.*?}`)
-	chineseRegex = regexp.MustCompile(`\p{Han}`)
+	commentRegex  = regexp.MustCompile(`%.*$`)
+	envFirstRegex = regexp.MustCompile(`\\begin\{.*?}`)
+	envEndRegex   = regexp.MustCompile(`\\end\{.*?}`)
+	decoRegex     = regexp.MustCompile(`\\[a-zA-Z]+(\{.*?})`)
+	syntaxRegex   = regexp.MustCompile(`\\[a-zA-Z]+`)
+	chineseRegex  = regexp.MustCompile(`\p{Han}`)
+	englishRegex  = regexp.MustCompile(`[a-zA-Z]+`)
 )
 
-type FileInfo struct {
-	Path      string
-	WordCount int
+func removeEnvCommands(text string) string {
+	text = envFirstRegex.ReplaceAllString(text, "")
+	text = envEndRegex.ReplaceAllString(text, "")
+	return text
 }
 
-func countChineseCharacters(filePath string) (int, error) {
+func removeDecoCommands(text string) string {
+	return decoRegex.ReplaceAllStringFunc(text, func(match string) string {
+		result := decoRegex.FindStringSubmatch(match)
+		if len(result) > 1 {
+			// 返回捕獲組的內容，去掉大括號
+			return result[1][1 : len(result[1])-1]
+		}
+		return match
+	})
+}
+
+type FileInfo struct {
+	Path         string
+	ChineseCount int
+	EnglishCount int
+}
+
+func countWords(filePath string) (int, int, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	defer func(file *os.File) {
 		err := file.Close()
@@ -34,20 +56,25 @@ func countChineseCharacters(filePath string) (int, error) {
 		}
 	}(file)
 
-	count := 0
+	chineseCount := 0
+	englishCount := 0
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
+		// 以下屏蔽順序很重要
+		line = removeEnvCommands(line)
 		line = commentRegex.ReplaceAllString(line, "")
-		line = envRegex.ReplaceAllString(line, "")
-		count += len(chineseRegex.FindAllString(line, -1))
+		line = removeDecoCommands(line)
+		line = syntaxRegex.ReplaceAllString(line, "")
+		chineseCount += len(chineseRegex.FindAllString(line, -1))
+		englishCount += len(englishRegex.FindAllString(line, -1))
 	}
 
 	if err := scanner.Err(); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	return count, nil
+	return chineseCount, englishCount, nil
 }
 
 func processDirectory(dirPath string) ([]FileInfo, error) {
@@ -58,11 +85,11 @@ func processDirectory(dirPath string) ([]FileInfo, error) {
 			return err
 		}
 		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".tex") {
-			count, err := countChineseCharacters(path)
+			chineseCount, englishCount, err := countWords(path)
 			if err != nil {
 				return err
 			}
-			fileInfos = append(fileInfos, FileInfo{Path: path, WordCount: count})
+			fileInfos = append(fileInfos, FileInfo{Path: path, ChineseCount: chineseCount, EnglishCount: englishCount})
 		}
 		return nil
 	})
@@ -72,28 +99,30 @@ func processDirectory(dirPath string) ([]FileInfo, error) {
 	}
 
 	sort.Slice(fileInfos, func(i, j int) bool {
-		return fileInfos[i].WordCount > fileInfos[j].WordCount
+		return fileInfos[i].ChineseCount+fileInfos[i].EnglishCount > fileInfos[j].ChineseCount+fileInfos[j].EnglishCount
 	})
 
 	return fileInfos, nil
 }
 
 func printTable(fileInfos []FileInfo) {
-	totalCount := 0
-	fmt.Println("+----------------------+-----------+")
-	fmt.Println("| File                 | Word Count |")
-	fmt.Println("+----------------------+-----------+")
+	totalChineseCount := 0
+	totalEnglishCount := 0
+	fmt.Println("+----------------------+--------------+--------------+")
+	fmt.Println("| File                 | Chinese Count| English Count|")
+	fmt.Println("+----------------------+--------------+--------------+")
 	for _, fi := range fileInfos {
 		filename := filepath.Base(fi.Path)
 		if len(filename) > 20 {
 			filename = filename[:17] + "..."
 		}
-		fmt.Printf("| %-20s | %9d |\n", filename, fi.WordCount)
-		totalCount += fi.WordCount
+		fmt.Printf("| %-20s | %12d | %12d |\n", filename, fi.ChineseCount, fi.EnglishCount)
+		totalChineseCount += fi.ChineseCount
+		totalEnglishCount += fi.EnglishCount
 	}
-	fmt.Println("+----------------------+-----------+")
-	fmt.Printf("| Total                | %9d |\n", totalCount)
-	fmt.Println("+----------------------+-----------+")
+	fmt.Println("+----------------------+--------------+--------------+")
+	fmt.Printf("| Total                | %12d | %12d |\n", totalChineseCount, totalEnglishCount)
+	fmt.Println("+----------------------+--------------+--------------+")
 }
 
 func main() {
