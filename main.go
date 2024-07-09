@@ -108,21 +108,21 @@ func processDirectory(dirPath string) ([]FileInfo, error) {
 func printTable(fileInfos []FileInfo) {
 	totalChineseCount := 0
 	totalEnglishCount := 0
-	fmt.Println("+----------------------+--------------+--------------+")
-	fmt.Println("| File                 | Chinese Count| English Count|")
-	fmt.Println("+----------------------+--------------+--------------+")
+	fmt.Println("+----------------------+--------------+--------------+--------------+")
+	fmt.Println("| File                 | Chinese Count| English Count| Total Count  |")
+	fmt.Println("+----------------------+--------------+--------------+--------------+")
 	for _, fi := range fileInfos {
 		filename := filepath.Base(fi.Path)
 		if len(filename) > 20 {
 			filename = filename[:17] + "..."
 		}
-		fmt.Printf("| %-20s | %12d | %12d |\n", filename, fi.ChineseCount, fi.EnglishCount)
+		fmt.Printf("| %-20s | %12d | %12d | %12d |\n", filename, fi.ChineseCount, fi.EnglishCount, fi.ChineseCount+fi.EnglishCount)
 		totalChineseCount += fi.ChineseCount
 		totalEnglishCount += fi.EnglishCount
 	}
-	fmt.Println("+----------------------+--------------+--------------+")
-	fmt.Printf("| Total                | %12d | %12d |\n", totalChineseCount, totalEnglishCount)
-	fmt.Println("+----------------------+--------------+--------------+")
+	fmt.Println("+----------------------+--------------+--------------+--------------+")
+	fmt.Printf("| Total                | %12d | %12d | %12d |\n", totalChineseCount, totalEnglishCount, totalChineseCount+totalEnglishCount)
+	fmt.Println("+----------------------+--------------+--------------+--------------+")
 }
 
 func main() {

@@ -5,6 +5,8 @@ test:
 	go test ./...
 
 deploy:
-	echo "should commit latest changes before deploying"
-	git tag v0.2.0
-	git push origin v0.2.0
+	git ls-remote --tags origin
+#	git tag v0.2.0
+#	git push origin v0.2.0
+	git tag lastest -f
+	git push origin lastest -f

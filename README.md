@@ -6,24 +6,8 @@
 
 確保你已經安裝了 Go（版本 1.22 或更高）。
 
-### 方法 1：直接從 GitHub 安裝
-
 ```bash
 go install github.com/leon123858/latex-directory-counter/cmd/latex-directory-counter@latest
-```
-
-### 方法 2：克隆倉庫後安裝
-
-```bash
-git clone https://github.com/your_github_username/latex-directory-counter.git
-cd latex-directory-counter
-go install ./cmd/latex-directory-counter
-```
-
-安裝後，確保 `$GOPATH/bin` 在你的 PATH 中。你可以通過將以下行添加到你的 `.bashrc` 或 `.zshrc` 文件來實現：
-
-```bash
-export PATH=$PATH:$(go env GOPATH)/bin
 ```
 
 ## 使用方法
