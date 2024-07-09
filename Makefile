@@ -6,7 +6,7 @@ test:
 
 deploy:
 	git ls-remote --tags origin
-#	git tag v0.2.0
-#	git push origin v0.2.0
+	git tag v0.2.1
+	git push origin v0.2.1
 	git tag lastest -f
 	git push origin lastest -f
